@@ -6,19 +6,25 @@ def create_database():
     connection = sqlite3.connect(DATABASE)
     cursor = connection.cursor()
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS memory (
+            CREATE TABLE IF NOT EXISTS memory (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            key TEXT NOT NULL,
-            value TEXT NOT NULL 
-        )""")
+            key TEXT UNIQUE NOT NULL,
+            value TEXT NOT NULL
+            )
+    """)
 
     connection.commit()
     connection.close()
 
-def save_memory(key,value):
+def save_memory(key, value):
     connection = sqlite3.connect(DATABASE)
     cursor = connection.cursor()
-    cursor.execute("INSERT INTO memory (key, value) VALUES (?, ?)", (key, value))
+    cursor.execute("""
+                INSERT INTO memory (key, value)
+                VALUES (?, ?)
+                ON CONFLICT(key)
+                DO UPDATE SET value = excluded.value
+    """, (key, value))
 
     connection.commit()
     connection.close()

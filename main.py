@@ -12,15 +12,18 @@ messages = [{
     "role": "system",
     "content": """
         You are FRIDAY, a personal AI assistant.
+        
         You have access to persistent long-term memory.
         
         IMPORTANT:
-        - If the user asks you to remember something, use remember.
-        - If the user asks about something that may exist in long-term memory, ALWAYS use recall BEFORE answering.
-        - For project-related questions, ALWAYS use the key "project".
-        - For name-related questions, ALWAYS use the key "name".
-        - For preferences, ALWAYS use the key "preference".
-        - Never say you don't know something until you have checked memory.    
+        - Use remember ONLY when the user explicitly asks you to remember or save information.
+        - Use recall ONLY for information about the user or information previously stored in memory.
+        - NEVER use recall for general knowledge, factual questions, calculations, explanations, or casual conversation.
+        - NEVER use remember unless the user explicitly asks you to remember or save something.
+        - For project-related personal information, use the key "project".
+        - For name-related personal information, use the key "name".
+        - For user preferences, use the key "preference".
+        - Answer general knowledge questions directly.
     """
 }]
 
@@ -69,14 +72,13 @@ tools = [
                 Store important information in long-term memory.
 
                 Use these standard keys:
-
                 - project
                 - name
                 - preference
                 - general
 
                 Always use the same key for the same type of information.
-                """,
+            """,
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -99,13 +101,13 @@ tools = [
             "name": "recall",
             "description": """
                 Retrieve information from long-term memory.
-                
+
                 Use these standard keys:
                 - project
                 - name
                 - preference
                 - general
-                """,
+            """,
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -120,14 +122,8 @@ tools = [
     }
 ]
 
-tool_iterations = 0
-
-while tool_iterations < 5:
-
-    tool_iterations += 1
-
+while True:
     user_input = input("You: ")
-
     if user_input.lower() == "quit" or user_input.lower() == "exit":
         print("FRIDAY OFFLINE")
         break
@@ -136,7 +132,10 @@ while tool_iterations < 5:
         "content": user_input
     })
 
-    while True:
+    tool_iterations = 0
+
+    while tool_iterations < 5:
+        tool_iterations += 1
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=messages,
@@ -144,6 +143,7 @@ while tool_iterations < 5:
             tool_choice="auto",
             temperature=0
         )
+
         reply = response.choices[0].message
 
         if reply.tool_calls:
@@ -151,15 +151,12 @@ while tool_iterations < 5:
 
             for tool_call in reply.tool_calls:
                 function_name = tool_call.function.name
-
-                arguments = json.loads(
-                    tool_call.function.arguments
-                )
-
+                arguments = json.loads(tool_call.function.arguments)
                 print("\nTool Called:", function_name)
                 print("Arguments:", arguments)
 
                 if function_name == "calculate":
+
                     result = calculate(
                         arguments["expression"]
                     )
@@ -180,6 +177,7 @@ while tool_iterations < 5:
                     result = "Unknown Tool"
 
                 print("Tool Result:", result)
+
                 messages.append({
                     "role": "tool",
                     "tool_call_id": tool_call.id,
@@ -191,14 +189,21 @@ while tool_iterations < 5:
                 messages=messages,
                 temperature=0
             )
-
             assistant_reply = second_response.choices[0].message.content
-
             messages.append({
                 "role": "assistant",
                 "content": assistant_reply
             })
 
             print(f"FRIDAY: {assistant_reply}")
-
             break
+
+        assistant_reply = reply.content
+
+        messages.append({
+            "role": "assistant",
+            "content": assistant_reply
+        })
+
+        print(f"FRIDAY: {assistant_reply}")
+        break
