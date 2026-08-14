@@ -28,6 +28,10 @@ def save_memory(key,value):
 def get_memory(key):
     connection = sqlite3.connect(DATABASE)
     cursor = connection.cursor()
-    cursor.execute("SELECT value FROM memory WHERE key = ?", (key,))
+    cursor.execute(
+        "SELECT value FROM memory WHERE key = ?",
+        (key,)
+    )
     result = cursor.fetchone()
+    connection.close()
     return result[0] if result else None
