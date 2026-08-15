@@ -27,6 +27,7 @@ messages = [{
         - When storing information derived from a tool result, store the complete result accurately.
         - Never invent or modify values when creating a memory.
         - Do not create multiple memories for the same request unless the user explicitly asks for multiple separate memories.
+        - When the user asks to read a file, use read_file with the exact filename provided by the user.
     """
 }]
 
@@ -149,7 +150,27 @@ tools = [
                 "required": ["query"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_file",
+            "description": """
+                Read the contents of a text file from the FRIDAY workspace.
+            """,
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filename": {
+                        "type": "string",
+                        "description": "The filename of the file whose contents should be retrieved."
+                    }
+                },
+                "required": ["filename"]
+            }
+        }
     }
+
 ]
 
 while True:
@@ -186,7 +207,6 @@ while True:
                 print("Arguments:", arguments)
 
                 if function_name == "calculate":
-
                     result = calculate(
                         arguments["expression"]
                     )
@@ -206,6 +226,10 @@ while True:
                 elif function_name == "web_search":
                     result = web_search(
                         arguments["query"]
+                    )
+                elif function_name == "read_file":
+                    result = read_file(
+                        arguments["filename"]
                     )
                 else:
                     result = "Unknown Tool"

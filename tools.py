@@ -2,6 +2,7 @@ from memory import *
 from tavily import TavilyClient
 import os
 
+# Version 1 tools
 def calculate(expression):
     return eval(expression)
 
@@ -20,6 +21,7 @@ def recall(key):
         return "No memory found!"
     return result
 
+# Version 2 tools
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 def web_search(query):
     response = tavily.search(query=f"latest {query} news article",max_results=1,search_depth="basic")
@@ -35,3 +37,14 @@ def web_search(query):
         )
 
     return "\n".join(results)
+
+def read_file(filename):
+    filepath = os.path.join("workspace", filename)
+
+    try:
+        with open(filepath, "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "File not found!"
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
