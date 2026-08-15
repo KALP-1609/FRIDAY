@@ -169,6 +169,30 @@ tools = [
                 "required": ["filename"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "write_file",
+            "description": """
+                Write content to a text file in the FRIDAY workspace.
+                Create the file if it does not exist.
+                Use the exact filename provided by the user.            """,
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filename": {
+                        "type": "string",
+                        "description": "The filename of the file in which the contents needs to be added"
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "The content to be added to the file"
+                    }
+                },
+                "required": ["filename","content"]
+            }
+        }
     }
 
 ]
@@ -230,6 +254,11 @@ while True:
                 elif function_name == "read_file":
                     result = read_file(
                         arguments["filename"]
+                    )
+                elif function_name == "write_file":
+                    result = write_file(
+                        arguments["filename"],
+                        arguments["content"]
                     )
                 else:
                     result = "Unknown Tool"

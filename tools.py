@@ -48,3 +48,15 @@ def read_file(filename):
         return "File not found!"
     except Exception as e:
         return f"An error occurred: {str(e)}"
+
+def write_file(filename, content):
+    filepath = os.path.join("workspace", filename)
+
+    if not os.path.abspath(filepath).startswith(os.path.abspath("workspace") + os.sep):
+        return "Access denied!"
+    try:
+        with open(filepath, "a") as f:
+            f.write("\n" + content)
+            return "File written successfully!"
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
