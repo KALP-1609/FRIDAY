@@ -3,8 +3,9 @@ from groq import Groq
 import os
 import json
 
-from tools import *
 load_dotenv()
+
+from tools import *
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -193,8 +194,39 @@ tools = [
                 "required": ["filename","content"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_files",
+            "description": """
+                List all files available in the FRIDAY workspace.
+                Use this tool when the user asks what files are available,
+                what files exist, or wants to see the contents of the workspace directory.
+                Only list files inside the workspace.
+                Do not access files outside the workspace.          
+            """,
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_all_files",
+            "description": """
+            Read the contents of all files in the FRIDAY workspace.
+            Use this when the user explicitly asks to read all files.
+            Only access files inside the workspace.
+        """,
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
     }
-
 ]
 
 while True:
@@ -260,6 +292,10 @@ while True:
                         arguments["filename"],
                         arguments["content"]
                     )
+                elif function_name == "list_files":
+                    result = list_files()
+                elif function_name == "read_all_files":
+                    result = read_all_files()
                 else:
                     result = "Unknown Tool"
 
