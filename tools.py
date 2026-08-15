@@ -1,4 +1,6 @@
 from memory import *
+from tavily import TavilyClient
+import os
 
 def calculate(expression):
     return eval(expression)
@@ -17,3 +19,19 @@ def recall(key):
     if result is None:
         return "No memory found!"
     return result
+
+tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+def web_search(query):
+    response = tavily.search(query=f"latest {query} news article",max_results=1,search_depth="basic")
+
+    results = []
+
+    for result in response["results"]:
+
+        results.append(
+            f"Title: {result['title']}\n"
+            f"Content: {result['content']}\n"
+            f"URL: {result['url']}\n"
+        )
+
+    return "\n".join(results)

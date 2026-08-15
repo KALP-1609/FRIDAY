@@ -24,6 +24,9 @@ messages = [{
         - For name-related personal information, use the key "name".
         - For user preferences, use the key "preference".
         - Answer general knowledge questions directly.
+        - When storing information derived from a tool result, store the complete result accurately.
+        - Never invent or modify values when creating a memory.
+        - Do not create multiple memories for the same request unless the user explicitly asks for multiple separate memories.
     """
 }]
 
@@ -76,7 +79,10 @@ tools = [
                 - name
                 - preference
                 - general
-
+                Store all information belonging to the same user request as ONE complete memory.
+                Do not split one piece of information into multiple memories.
+                Do not invent, modify, or add information that the user did not provide.
+                Store the information exactly as provided or as directly derived from a tool result.
                 Always use the same key for the same type of information.
             """,
             "parameters": {
@@ -117,6 +123,30 @@ tools = [
                     }
                 },
                 "required": ["key"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": """
+                Search the web for current information, recent events,
+                news, facts or information that may have changed recently.
+                
+                Use this tool only when up to date information is needed.
+                Do not use this for general knowledge, factual questions,
+                calculations, explanations, or casual conversation which you already know the answer to.
+            """,
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The query for which the latest web search results should be retrieved."
+                    }
+                },
+                "required": ["query"]
             }
         }
     }
@@ -173,6 +203,10 @@ while True:
                     result = recall(
                         arguments["key"]
                     )
+                elif function_name == "web_search":
+                    result = web_search(
+                        arguments["query"]
+                    )
                 else:
                     result = "Unknown Tool"
 
@@ -184,19 +218,7 @@ while True:
                     "content": str(result)
                 })
 
-            second_response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=messages,
-                temperature=0
-            )
-            assistant_reply = second_response.choices[0].message.content
-            messages.append({
-                "role": "assistant",
-                "content": assistant_reply
-            })
-
-            print(f"FRIDAY: {assistant_reply}")
-            break
+            continue
 
         assistant_reply = reply.content
 
