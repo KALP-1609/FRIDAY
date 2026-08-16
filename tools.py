@@ -1,42 +1,58 @@
 from memory import *
 from tavily import TavilyClient
+from exceptions import *
 import os
 
 # Version 1 tools
 def calculate(expression):
-    return eval(expression)
+    try:
+        return str(eval(expression))
+    except Exception as e:
+        raise ToolError(f"Calculation failed: {str(e)}")
 
 def save_note(note):
-    with open('notes.txt', 'a') as f:
-        f.write(note + "\n")
+    try:
+        with open('notes.txt', 'a') as f:
+            f.write(note + "\n")
 
-    return "Note saved!"
+        return "Note saved!"
+    except Exception as e:
+        raise FileToolError(f"Failed to save note: {str(e)}")
 
 def remember(key,value):
-    return save_memory(key=key,value=value)
+    try:
+        return save_memory(key=key,value=value)
+    except Exception as e:
+        raise MemoryToolError(f"Failed to save memory: {str(e)}")
 
 def recall(key):
-    result = get_memory(key=key)
-    if result is None:
-        return "No memory found!"
-    return result
+    try:
+        result = get_memory(key=key)
+        if result is None:
+            return "No memory found!"
+        return result
+    except Exception as e:
+        raise MemoryToolError(f"Failed to retrieve memory: {str(e)}")
 
 # Version 2 tools
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 def web_search(query):
-    response = tavily.search(query=query,max_results=1,search_depth="basic")
+    try:
+        response = tavily.search(query=query,max_results=1,search_depth="basic")
 
-    results = []
+        results = []
 
-    for result in response["results"]:
+        for result in response["results"]:
 
-        results.append(
-            f"Title: {result['title']}\n"
-            f"Content: {result['content']}\n"
-            f"URL: {result['url']}\n"
-        )
+            results.append(
+                f"Title: {result['title']}\n"
+                f"Content: {result['content']}\n"
+                f"URL: {result['url']}\n"
+            )
 
-    return "\n".join(results)
+        return "\n".join(results)
+    except Exception as e:
+        raise MemoryToolError(f"Failed to retrieve memory: {str(e)}")
 
 def read_file(filename):
     filepath = os.path.join("workspace", filename)
@@ -47,9 +63,9 @@ def read_file(filename):
         with open(filepath, "r") as f:
             return f.read()
     except FileNotFoundError:
-        return "File not found!"
+        raise FileToolError(f"File not found: {filename}")
     except Exception as e:
-        return f"An error occurred: {str(e)}"
+        raise FileToolError(f"Could not found file: {str(e)}")
 
 def write_file(filename, content):
     filepath = os.path.join("workspace", filename)
@@ -61,19 +77,25 @@ def write_file(filename, content):
             f.write("\n" + content)
             return "File written successfully!"
     except Exception as e:
-        return f"An error occurred: {str(e)}"
+        raise FileToolError(f"Could not write file: {str(e)}")
 
 def list_files():
-    return [
-        file for file in os.listdir("workspace")
-        if os.path.isfile(os.path.join("workspace", file))
-    ]
+    try:
+        return [
+            file for file in os.listdir("workspace")
+            if os.path.isfile(os.path.join("workspace", file))
+        ]
+    except Exception as e:
+        raise FileToolError(f"Could not list files: {str(e)}")
 
 def read_all_files():
-    files = list_files()
-    results = []
-    for file in files:
-        result = read_file(file)
-        results.append(f"{file} --> {result}")
+    try:
+        files = list_files()
+        results = []
+        for file in files:
+            result = read_file(file)
+            results.append(f"{file} --> {result}")
 
-    return "\n".join(results)
+        return "\n".join(results)
+    except Exception as e:
+        raise FileToolError(f"Could not read files: {str(e)}")

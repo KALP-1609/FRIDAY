@@ -1,11 +1,12 @@
 from dotenv import load_dotenv
-from groq import Groq
+from groq import Groq, APIError, BadRequestError, RateLimitError
 import os
 import json
 
 load_dotenv()
 
 from tools import *
+from exceptions import *
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -17,7 +18,7 @@ messages = [{
         You have access to persistent long-term memory.
         
         IMPORTANT:
-        - Use remember ONLY when the user explicitly asks you to remember or save information.
+        - Use remember ONLY when the user explicitly asks you to remember or save something.
         - Use recall ONLY for information about the user or information previously stored in memory.
         - NEVER use recall for general knowledge, factual questions, calculations, explanations, or casual conversation.
         - NEVER use remember unless the user explicitly asks you to remember or save something.
@@ -178,7 +179,8 @@ tools = [
             "description": """
                 Write content to a text file in the FRIDAY workspace.
                 Create the file if it does not exist.
-                Use the exact filename provided by the user.            """,
+                Use the exact filename provided by the user.
+            """,
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -191,7 +193,7 @@ tools = [
                         "description": "The content to be added to the file"
                     }
                 },
-                "required": ["filename","content"]
+                "required": ["filename", "content"]
             }
         }
     },
@@ -204,7 +206,7 @@ tools = [
                 Use this tool when the user asks what files are available,
                 what files exist, or wants to see the contents of the workspace directory.
                 Only list files inside the workspace.
-                Do not access files outside the workspace.          
+                Do not access files outside the workspace.
             """,
             "parameters": {
                 "type": "object",
@@ -217,10 +219,10 @@ tools = [
         "function": {
             "name": "read_all_files",
             "description": """
-            Read the contents of all files in the FRIDAY workspace.
-            Use this when the user explicitly asks to read all files.
-            Only access files inside the workspace.
-        """,
+                Read the contents of all files in the FRIDAY workspace.
+                Use this when the user explicitly asks to read all files.
+                Only access files inside the workspace.
+            """,
             "parameters": {
                 "type": "object",
                 "properties": {}
@@ -231,9 +233,11 @@ tools = [
 
 while True:
     user_input = input("You: ")
+
     if user_input.lower() == "quit" or user_input.lower() == "exit":
         print("FRIDAY OFFLINE")
         break
+
     messages.append({
         "role": "user",
         "content": user_input
@@ -243,13 +247,31 @@ while True:
 
     while tool_iterations < 5:
         tool_iterations += 1
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=messages,
-            tools=tools,
-            tool_choice="auto",
-            temperature=0
-        )
+
+        try:
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=messages,
+                tools=tools,
+                tool_choice="auto",
+                temperature=0
+            )
+
+        except RateLimitError:
+            print("FRIDAY: API rate limit reached.")
+            break
+
+        except BadRequestError as e:
+            print(f"FRIDAY: Invalid request: {e}")
+            break
+
+        except APIError as e:
+            print(f"FRIDAY: API error: {e}")
+            break
+
+        except Exception as e:
+            print(f"FRIDAY: Unexpected error: {e}")
+            break
 
         reply = response.choices[0].message
 
@@ -258,46 +280,71 @@ while True:
 
             for tool_call in reply.tool_calls:
                 function_name = tool_call.function.name
-                arguments = json.loads(tool_call.function.arguments)
+
+                try:
+                    arguments = json.loads(
+                        tool_call.function.arguments
+                    )
+                except json.JSONDecodeError:
+                    result = "Tool Error: Invalid tool arguments."
+
+                    print("\nTool Called:", function_name)
+                    print("Tool Result:", result)
+
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": result
+                    })
+
+                    continue
+
                 print("\nTool Called:", function_name)
                 print("Arguments:", arguments)
 
-                if function_name == "calculate":
-                    result = calculate(
-                        arguments["expression"]
-                    )
-                elif function_name == "save_note":
-                    result = save_note(
-                        arguments["note"]
-                    )
-                elif function_name == "remember":
-                    result = remember(
-                        arguments["key"],
-                        arguments["value"]
-                    )
-                elif function_name == "recall":
-                    result = recall(
-                        arguments["key"]
-                    )
-                elif function_name == "web_search":
-                    result = web_search(
-                        arguments["query"]
-                    )
-                elif function_name == "read_file":
-                    result = read_file(
-                        arguments["filename"]
-                    )
-                elif function_name == "write_file":
-                    result = write_file(
-                        arguments["filename"],
-                        arguments["content"]
-                    )
-                elif function_name == "list_files":
-                    result = list_files()
-                elif function_name == "read_all_files":
-                    result = read_all_files()
-                else:
-                    result = "Unknown Tool"
+                try:
+                    if function_name == "calculate":
+                        result = calculate(
+                            arguments["expression"]
+                        )
+                    elif function_name == "save_note":
+                        result = save_note(
+                            arguments["note"]
+                        )
+                    elif function_name == "remember":
+                        result = remember(
+                            arguments["key"],
+                            arguments["value"]
+                        )
+                    elif function_name == "recall":
+                        result = recall(
+                            arguments["key"]
+                        )
+                    elif function_name == "web_search":
+                        result = web_search(
+                            arguments["query"]
+                        )
+                    elif function_name == "read_file":
+                        result = read_file(
+                            arguments["filename"]
+                        )
+                    elif function_name == "write_file":
+                        result = write_file(
+                            arguments["filename"],
+                            arguments["content"]
+                        )
+                    elif function_name == "list_files":
+                        result = list_files()
+                    elif function_name == "read_all_files":
+                        result = read_all_files()
+                    else:
+                        result = "Tool Error: Unknown tool."
+
+                except ToolError as e:
+                    result = f"Tool Error: {e}"
+
+                except Exception as e:
+                    result = f"Unexpected tool error: {e}"
 
                 print("Tool Result:", result)
 
