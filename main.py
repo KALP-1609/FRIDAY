@@ -5,6 +5,7 @@ import json
 
 load_dotenv()
 
+from config import *
 from tool_registry import *
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -29,6 +30,11 @@ messages = [{
         - Never invent or modify values when creating a memory.
         - Do not create multiple memories for the same request unless the user explicitly asks for multiple separate memories.
         - When the user asks to read a file, use read_file with the exact filename provided by the user.
+        - Tool results are authoritative.
+        - When a tool returns information, use that information directly in your response.
+        - Never contradict a tool result.
+        - Never claim that information is missing when the tool returned it successfully.
+        - After answering the user's request, stop. Do not generate additional user messages or conversation turns.
     """
 }]
 
@@ -48,16 +54,17 @@ while True:
 
     tool_iterations = 0
 
-    while tool_iterations < 5:
+    while tool_iterations < MAX_TOOL_ITERATIONS:
         tool_iterations += 1
 
         try:
             response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model=MODEL_NAME,
                 messages=messages,
                 tools=tools_definition,
                 tool_choice="auto",
-                temperature=0
+                temperature=TEMPERATURE,
+                reasoning_effort="low"
             )
 
         except RateLimitError:
@@ -97,6 +104,7 @@ while True:
                     messages.append({
                         "role": "tool",
                         "tool_call_id": tool_call.id,
+                        "name": function_name,
                         "content": result
                     })
 
@@ -115,6 +123,7 @@ while True:
                 messages.append({
                     "role": "tool",
                     "tool_call_id": tool_call.id,
+                    "name": function_name,
                     "content": str(result)
                 })
 
