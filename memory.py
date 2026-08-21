@@ -41,3 +41,17 @@ def get_memory(key):
     result = cursor.fetchone()
     connection.close()
     return result[0] if result else None
+
+def get_all_memories():
+    connection = sqlite3.connect(DATABASE)
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT key, value FROM memory")
+
+    results = cursor.fetchall()
+    connection.close()
+
+    return {
+        key: value
+        for key, value in results
+    }

@@ -64,13 +64,13 @@ tool_registry = {
     "recall": {
         "function": tools.recall,
         "description": """
-            Retrieve information from long-term memory.
-
-            Use these standard keys:
-            - project
-            - name
-            - preference
-            - general
+            Retrieve information from the user's persistent long-term memory.
+            Use this tool whenever the user asks about information that may have been
+            previously stored about them, their projects, preferences, plans, or other
+            personal information.
+            Do not rely on conversation history to answer these questions.
+            Conversation history is not authoritative for persistent memory.
+            If the requested information is not stored, return that no matching memory was found.
         """,
         "parameters": {
             "type": "object",
@@ -180,11 +180,24 @@ tools_definition = [
 
 def execute_tool(tool_name, arguments):
     if tool_name not in tool_registry:
-        return "Tool Error: Unknown Tool"
+        return tool_failure("Unknown Tool")
 
     try:
-        return tool_registry[tool_name]["function"](**arguments)
+        result = tool_registry[tool_name]["function"](**arguments)
+        return tool_success(result)
     except ToolError as e:
-        return f"Tool Error: {e}"
+        return tool_failure(str(e))
     except Exception as e:
-        return f"Unexpected tool error: {e}"
+        return tool_failure(f"Unexpected tool error: {e}")
+
+def tool_success(result):
+    return {
+        "success": True,
+        "result": result
+    }
+
+def tool_failure(error):
+    return {
+        "success": False,
+        "error": error
+    }

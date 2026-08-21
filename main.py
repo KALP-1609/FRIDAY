@@ -7,6 +7,8 @@ load_dotenv()
 
 from config import *
 from tool_registry import *
+from conversation import *
+from memory import get_all_memories
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -14,29 +16,49 @@ messages = [{
     "role": "system",
     "content": """
         You are FRIDAY, a personal AI assistant.
-        
+
         You have access to persistent long-term memory.
+
+        MEMORY RULES:
+        - Persistent memory is the authoritative source for information about the user.
+        - Conversation history is NOT a source of truth for persistent user information.
+        - If the user asks about information that may have been previously stored about them, use recall before answering.
+        - Never answer a question about stored user information solely from conversation history.
+        - If recall returns information, use that result directly.
+        - If recall returns no memory, say that the information is not currently stored.
+        - Do not invent personal information.
+
+        REMEMBER RULES:
+        - Use remember ONLY when the user explicitly asks you to remember or save information.
+        - Store the complete information provided by the user.
+        - Do not split one request into multiple memories unless necessary.
+        - Never modify or invent information being stored.
         
-        IMPORTANT:
-        - Use remember ONLY when the user explicitly asks you to remember or save something.
-        - Use recall ONLY for information about the user or information previously stored in memory.
-        - NEVER use recall for general knowledge, factual questions, calculations, explanations, or casual conversation.
-        - NEVER use remember unless the user explicitly asks you to remember or save something.
-        - For project-related personal information, use the key "project".
-        - For name-related personal information, use the key "name".
-        - For user preferences, use the key "preference".
+        GENERAL RULES:
         - Answer general knowledge questions directly.
-        - When storing information derived from a tool result, store the complete result accurately.
-        - Never invent or modify values when creating a memory.
-        - Do not create multiple memories for the same request unless the user explicitly asks for multiple separate memories.
-        - When the user asks to read a file, use read_file with the exact filename provided by the user.
+        - Use tools when they are necessary.
         - Tool results are authoritative.
-        - When a tool returns information, use that information directly in your response.
-        - Never contradict a tool result.
-        - Never claim that information is missing when the tool returned it successfully.
-        - After answering the user's request, stop. Do not generate additional user messages or conversation turns.
+        - Never contradict a successful tool result.
+        - After answering the user's request, stop.
     """
 }]
+
+def refres_memory_context():
+    base_prompt = messages[0]["content"].split("\n\nCURRENT PERSISTENT MEMORY:")[0]
+    memories = get_all_memories()
+    memory_context = ""
+
+    if memories:
+        memory_context = "\n\nCURRENT PERSISTENT MEMORY:\n"
+        for key,value in memories.items():
+            memory_context += f"- {key}: {value}\n"
+    messages[0]["content"] = base_prompt + memory_context
+
+initialize_database()
+
+refres_memory_context()
+
+messages.extend(load_messages())
 
 print("FRIDAY ONLINE")
 
@@ -51,6 +73,7 @@ while True:
         "role": "user",
         "content": user_input
     })
+    save_message("user",user_input)
 
     tool_iterations = 0
 
@@ -118,6 +141,9 @@ while True:
                     arguments
                 )
 
+                if function_name == "remember":
+                    refres_memory_context()
+
                 print("Tool Result:", result)
 
                 messages.append({
@@ -135,6 +161,6 @@ while True:
             "role": "assistant",
             "content": assistant_reply
         })
-
+        save_message("assistant",assistant_reply)
         print(f"FRIDAY: {assistant_reply}")
         break
