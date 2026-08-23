@@ -9,6 +9,7 @@ from config import *
 from tool_registry import *
 from conversation import *
 from memory import get_all_memories
+from context_manager import trim_messages
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -79,7 +80,8 @@ while True:
 
     while tool_iterations < MAX_TOOL_ITERATIONS:
         tool_iterations += 1
-
+        if len(messages) > 40:
+            messages = trim_messages(messages)
         try:
             response = client.chat.completions.create(
                 model=MODEL_NAME,
