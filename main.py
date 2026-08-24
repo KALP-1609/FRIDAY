@@ -8,7 +8,7 @@ load_dotenv()
 from config import *
 from tool_registry import *
 from conversation import *
-from memory import get_all_memories
+from memory import *
 from context_manager import trim_messages
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -80,7 +80,7 @@ while True:
 
     while tool_iterations < MAX_TOOL_ITERATIONS:
         tool_iterations += 1
-        if len(messages) > 40:
+        if len(messages) > CONTEXT_CHECK_MESSAGES:
             messages = trim_messages(messages)
         try:
             response = client.chat.completions.create(
@@ -113,6 +113,13 @@ while True:
         if reply.tool_calls:
             messages.append(reply)
 
+            save_message(
+                "assistant",content = reply.content,tool_calls=[
+                    tool_call.model_dump(exclude_none=True)
+                    for tool_call in reply.tool_calls
+                ]
+            )
+
             for tool_call in reply.tool_calls:
                 function_name = tool_call.function.name
 
@@ -125,6 +132,8 @@ while True:
 
                     print("\nTool Called:", function_name)
                     print("Tool Result:", result)
+
+                    save_message("tool",content = str(result),tool_call_id=tool_call.id,name=function_name)
 
                     messages.append({
                         "role": "tool",

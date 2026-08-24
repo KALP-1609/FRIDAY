@@ -1,7 +1,7 @@
 from transformers import AutoTokenizer
 from config import MAX_CONTEXT_TOKENS
 
-tokenizer = AutoTokenizer.from_pretrained("openai/gpt-oss-120b")
+tokenizer = AutoTokenizer.from_pretrained("openai/gpt-oss-120b",local_files_only=True)
 
 def message_to_dict(message):
     if isinstance(message, dict):
