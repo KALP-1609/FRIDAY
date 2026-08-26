@@ -4,7 +4,11 @@ from exceptions import ToolError
 tool_registry = {
     "calculate": {
         "function": tools.calculate,
-        "description": "Calculate a mathematical expression.",
+        "description": """
+            Evaluate mathematical expressions and calculations.
+            Use this tool for arithmetic, percentages, powers, roots,
+            logarithms, trigonometric expressions, and other mathematical
+            calculations. Do not use Python code or arbitrary function calls.""",
         "parameters": {
             "type": "object",
             "properties": {
@@ -179,8 +183,10 @@ tools_definition = [
 ]
 
 def execute_tool(tool_name, arguments):
+    if not isinstance(arguments, dict):
+        return tool_failure("Tool arguments must be a JSON object.")
     if tool_name not in tool_registry:
-        return tool_failure("Unknown Tool")
+        return tool_failure(f"Unknown tool: {tool_name}")
 
     try:
         result = tool_registry[tool_name]["function"](**arguments)

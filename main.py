@@ -90,12 +90,10 @@ while True:
         tool_iterations += 1
         if len(messages) > CONTEXT_CHECK_MESSAGES:
             if should_summarize(messages):
-                messages = trim_messages(messages)
+                messages = summarize_old_messages(messages)
             else:
                 messages = trim_messages(messages)
         try:
-            print("REQUEST TOKENS:",estimate_tokens(messages))
-            print("TOOLS:",len(tools_definition))
             response = client.chat.completions.create(
                 model=MODEL_NAME,
                 messages=messages,

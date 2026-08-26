@@ -2,13 +2,20 @@ from memory import *
 from tavily import TavilyClient
 from exceptions import *
 import os
+import sympy as sp
+
+WORKSPACE_DIR = os.path.abspath("workspace")
 
 # Version 1 tools
 def calculate(expression):
     try:
-        return str(eval(expression))
+        result = sp.sympify(expression)
+        if not result.is_number:
+
+            raise ValueError("Expression must evaluate to a number.")
+        return str(result.evalf())
     except Exception as e:
-        raise ToolError(f"Calculation failed: {str(e)}")
+        raise ToolError(f"Calculation failed: {e}")
 
 def save_note(note):
     try:
@@ -52,15 +59,26 @@ def web_search(query):
 
         return "\n".join(results)
     except Exception as e:
-        raise MemoryToolError(f"Failed to retrieve memory: {str(e)}")
+        raise ToolError(f"Web Search Failed: {str(e)}")
+
+def get_workspace_path(filename):
+    filepath = os.path.abspath(
+        os.path.join(WORKSPACE_DIR, filename)
+    )
+
+    if not (
+            filepath == WORKSPACE_DIR
+            or filepath.startswith(WORKSPACE_DIR + os.sep)
+    ):
+        raise FileToolError("Access denied: path is outside the FRIDAY workspace.")
+
+    return filepath
 
 def read_file(filename):
-    filepath = os.path.join("workspace", filename)
+    filepath = get_workspace_path(filename)
 
-    if not os.path.abspath(filepath).startswith(os.path.abspath("workspace") + os.sep):
-        return "Access denied!"
     try:
-        with open(filepath, "r") as f:
+        with open(filepath, "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
         raise FileToolError(f"File not found: {filename}")
@@ -68,12 +86,10 @@ def read_file(filename):
         raise FileToolError(f"Could not found file: {str(e)}")
 
 def write_file(filename, content):
-    filepath = os.path.join("workspace", filename)
+    filepath = get_workspace_path(filename)
 
-    if not os.path.abspath(filepath).startswith(os.path.abspath("workspace") + os.sep):
-        return "Access denied!"
     try:
-        with open(filepath, "a") as f:
+        with open(filepath, "a", encoding="utf-8") as f:
             f.write("\n" + content)
             return "File written successfully!"
     except Exception as e:
