@@ -9,7 +9,7 @@ from config import *
 from tool_registry import *
 from conversation import *
 from memory import *
-from context_manager import trim_messages
+from context_manager import trim_messages, should_summarize, summarize_old_messages, estimate_tokens
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -61,6 +61,14 @@ refres_memory_context()
 
 messages.extend(load_messages())
 
+summary = load_summary()
+
+if summary:
+    messages.insert(1, {
+        "role": "system",
+        "content": f"CONVERSATION SUMMARY:\n{summary}"
+    })
+
 print("FRIDAY ONLINE")
 
 while True:
@@ -81,15 +89,21 @@ while True:
     while tool_iterations < MAX_TOOL_ITERATIONS:
         tool_iterations += 1
         if len(messages) > CONTEXT_CHECK_MESSAGES:
-            messages = trim_messages(messages)
+            if should_summarize(messages):
+                messages = trim_messages(messages)
+            else:
+                messages = trim_messages(messages)
         try:
+            print("REQUEST TOKENS:",estimate_tokens(messages))
+            print("TOOLS:",len(tools_definition))
             response = client.chat.completions.create(
                 model=MODEL_NAME,
                 messages=messages,
                 tools=tools_definition,
                 tool_choice="auto",
                 temperature=TEMPERATURE,
-                reasoning_effort="low"
+                reasoning_effort="low",
+                max_completion_tokens=1000
             )
 
         except RateLimitError:

@@ -10,14 +10,22 @@ def initialize_database():
 
     cursor.execute("""
                    CREATE TABLE IF NOT EXISTS messages (
-                                                           id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                                           role TEXT NOT NULL,
-                                                           content TEXT,
-                                                           tool_calls TEXT,
-                                                           tool_call_id TEXT,
-                                                           name TEXT
-                   )
-                   """)
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    role TEXT NOT NULL,
+                    content TEXT,
+                    tool_calls TEXT,
+                    tool_call_id TEXT,
+                    name TEXT
+                )
+    """)
+
+    cursor.execute("""
+                   CREATE TABLE IF NOT EXISTS conversation_summary (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    summary TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+    """)
 
     conn.commit()
     conn.close()
@@ -41,7 +49,7 @@ def save_message(role, content=None, tool_calls=None, tool_call_id=None, name=No
     conn.commit()
     conn.close()
 
-def load_messages(COVERSATION_HISTORY_LIMIT):
+def load_messages(limit=CONVERSATION_HISTORY_LIMIT):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
@@ -93,3 +101,35 @@ def clear_conversation():
 
     conn.commit()
     conn.close()
+
+def save_summary(summary):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO conversation_summary (id, summary)
+        VALUES (1, ?)
+            ON CONFLICT(id)
+        DO UPDATE SET
+            summary = excluded.summary,
+                           updated_at = CURRENT_TIMESTAMP
+        """,
+        (summary,)
+    )
+
+    conn.commit()
+    conn.close()
+
+def load_summary():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT summary FROM conversation_summary WHERE id = 1"
+    )
+
+    result = cursor.fetchone()
+    conn.close()
+
+    return result[0] if result else None
