@@ -38,17 +38,23 @@ tool_registry = {
         "function": tools.remember,
         "description": """
             Store important information in long-term memory.
-
-            Use these standard keys:
-            - project
-            - name
-            - preference
-            - general
-
-            Store all information belonging to the same user request as ONE complete memory.
-            Do not split one piece of information into multiple memories.
+        
+            Use an appropriate category:
+            - identity: information about the user
+            - project: information about projects
+            - preference: user preferences
+            - general: other useful persistent information
+        
+            Use a descriptive key for the specific fact.
+        
+            Examples:
+            - category: identity, key: name, value: Tony Stark
+            - category: project, key: project_name, value: FRIDAY
+            - category: preference, key: favorite_show, value: Ultimate-Spider Man
+        
+            Store information only when the user explicitly asks you to remember it.
             Do not invent, modify, or add information that the user did not provide.
-            Store the information exactly as provided or as directly derived from a tool result.
+            Store the information as accurately as possible.
         """,
         "parameters": {
             "type": "object",
@@ -60,9 +66,16 @@ tool_registry = {
                 "value": {
                     "type": "string",
                     "description": "The information to store."
+                },
+                "category": {
+                    "type": "string",
+                    "enum": [
+                        "identity","project","preference","general"
+                    ],
+                    "description": "The category this memory belongs to."
                 }
             },
-            "required": ["key", "value"]
+            "required": ["key", "value", "category"]
         }
     },
     "recall": {

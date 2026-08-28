@@ -26,9 +26,14 @@ def save_note(note):
     except Exception as e:
         raise FileToolError(f"Failed to save note: {str(e)}")
 
-def remember(key,value):
+def remember(key, value, category="general"):
     try:
-        return save_memory(key=key,value=value)
+        return save_memory(
+            key=key,
+            value=value,
+            category=category,
+            source="user"
+        )
     except Exception as e:
         raise MemoryToolError(f"Failed to save memory: {str(e)}")
 

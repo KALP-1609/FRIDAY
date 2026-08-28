@@ -44,20 +44,21 @@ messages = [{
     """
 }]
 
-def refres_memory_context():
+def refresh_memory_context():
     base_prompt = messages[0]["content"].split("\n\nCURRENT PERSISTENT MEMORY:")[0]
     memories = get_all_memories()
     memory_context = ""
 
     if memories:
         memory_context = "\n\nCURRENT PERSISTENT MEMORY:\n"
-        for key,value in memories.items():
-            memory_context += f"- {key}: {value}\n"
+        for memory in memories:
+            memory_context += f"- [{memory['category']}] {memory['key']}: {memory['value']}\n"
+
     messages[0]["content"] = base_prompt + memory_context
 
 initialize_database()
 
-refres_memory_context()
+refresh_memory_context()
 
 messages.extend(load_messages())
 
@@ -165,7 +166,7 @@ while True:
                 )
 
                 if function_name == "remember":
-                    refres_memory_context()
+                    refresh_memory_context()
 
                 print("Tool Result:", result)
 
