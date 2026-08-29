@@ -82,22 +82,37 @@ tool_registry = {
         "function": tools.recall,
         "description": """
             Retrieve information from the user's persistent long-term memory.
-            Use this tool whenever the user asks about information that may have been
-            previously stored about them, their projects, preferences, plans, or other
-            personal information.
-            Do not rely on conversation history to answer these questions.
-            Conversation history is not authoritative for persistent memory.
-            If the requested information is not stored, return that no matching memory was found.
+        
+            You MUST use this tool before answering any question that asks about
+            information previously stored about the user, including their identity,
+            projects, preferences, plans, or other personal information.
+        
+            For a question about one specific stored fact, provide its key.
+        
+            For a question asking for multiple stored facts belonging to a category,
+            provide the category.
+        
+            If the user asks what you remember about them generally, retrieve the
+            relevant stored memories before answering.
+        
+            Do not answer memory-related questions from conversation history or
+            assumptions.
+        
+            If no matching memory exists, return that no matching memory was found.
+            Do not invent or modify memory information.
         """,
         "parameters": {
             "type": "object",
             "properties": {
                 "key": {
                     "type": "string",
-                    "description": "The key of the memory to retrieve."
+                    "description": "The specific memory key to retrieve."
+                },
+                "category": {
+                    "type": "string",
+                    "description": "The memory category from which to retrieve matching memories."
                 }
-            },
-            "required": ["key"]
+            }
         }
     },
     "web_search": {

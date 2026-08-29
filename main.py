@@ -23,7 +23,7 @@ messages = [{
         MEMORY RULES:
         - Persistent memory is the authoritative source for information about the user.
         - Conversation history is NOT a source of truth for persistent user information.
-        - If the user asks about information that may have been previously stored about them, use recall before answering.
+        - If the user asks about information that may have been previously stored about them, you MUST use the recall tool before answering.
         - Never answer a question about stored user information solely from conversation history.
         - If recall returns information, use that result directly.
         - If recall returns no memory, say that the information is not currently stored.
@@ -44,21 +44,21 @@ messages = [{
     """
 }]
 
-def refresh_memory_context():
-    base_prompt = messages[0]["content"].split("\n\nCURRENT PERSISTENT MEMORY:")[0]
-    memories = get_all_memories()
-    memory_context = ""
-
-    if memories:
-        memory_context = "\n\nCURRENT PERSISTENT MEMORY:\n"
-        for memory in memories:
-            memory_context += f"- [{memory['category']}] {memory['key']}: {memory['value']}\n"
-
-    messages[0]["content"] = base_prompt + memory_context
+# def refresh_memory_context():
+#     base_prompt = messages[0]["content"].split("\n\nCURRENT PERSISTENT MEMORY:")[0]
+#     memories = get_all_memories()
+#     memory_context = ""
+#
+#     if memories:
+#         memory_context = "\n\nCURRENT PERSISTENT MEMORY:\n"
+#         for memory in memories:
+#             memory_context += f"- [{memory['category']}] {memory['key']}: {memory['value']}\n"
+#
+#     messages[0]["content"] = base_prompt + memory_context
 
 initialize_database()
 
-refresh_memory_context()
+# refresh_memory_context()
 
 messages.extend(load_messages())
 
@@ -165,8 +165,8 @@ while True:
                     arguments
                 )
 
-                if function_name == "remember":
-                    refresh_memory_context()
+                # if function_name == "remember":
+                #     refresh_memory_context()
 
                 print("Tool Result:", result)
 

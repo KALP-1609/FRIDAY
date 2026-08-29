@@ -37,14 +37,28 @@ def remember(key, value, category="general"):
     except Exception as e:
         raise MemoryToolError(f"Failed to save memory: {str(e)}")
 
-def recall(key):
+def recall(key=None, category=None):
     try:
-        result = get_memory(key=key)
-        if result is None:
-            return "No memory found!"
-        return result
+        if key:
+            result = get_memory(key=key)
+            if result is None:
+                return "No memory found!"
+            return result
+
+        if category:
+            result = get_memories_by_category(category)
+            if not result:
+                return "No memories found in this category."
+            return result
+        raise MemoryToolError(
+            "Either a memory key or category must be provided."
+        )
+    except MemoryToolError:
+        raise
     except Exception as e:
-        raise MemoryToolError(f"Failed to retrieve memory: {str(e)}")
+        raise MemoryToolError(
+            f"Failed to retrieve memory: {str(e)}"
+        )
 
 # Version 2 tools
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
